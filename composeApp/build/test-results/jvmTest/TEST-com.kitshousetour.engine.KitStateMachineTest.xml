@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.kitshousetour.engine.KitStateMachineTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-11-26T13:13:16.357Z" hostname="sanjay-HP-ProBook-x360-435-G8-Notebook-PC" time="0.012">
+  <properties/>
+  <testcase name="tappingKitAlwaysMakesKitHappy[jvm]" classname="com.kitshousetour.engine.KitStateMachineTest" time="0.003"/>
+  <testcase name="idleFor60SecondsMakesKitTired[jvm]" classname="com.kitshousetour.engine.KitStateMachineTest" time="0.0"/>
+  <testcase name="idleForMoreThan60SecondsMakesKitTired[jvm]" classname="com.kitshousetour.engine.KitStateMachineTest" time="0.001"/>
+  <testcase name="timedMoodReturnsToHappyAfterExpiry[jvm]" classname="com.kitshousetour.engine.KitStateMachineTest" time="0.005"/>
+  <testcase name="timedMoodReturnsToHappyAtExpiry[jvm]" classname="com.kitshousetour.engine.KitStateMachineTest" time="0.0"/>
+  <testcase name="firstRoomVisitMakesKitCuriousForFiveSeconds[jvm]" classname="com.kitshousetour.engine.KitStateMachineTest" time="0.001"/>
+  <testcase name="finishingLessonMakesKitProudForTenSeconds[jvm]" classname="com.kitshousetour.engine.KitStateMachineTest" time="0.0"/>
+  <testcase name="untimedMoodDoesNotExpire[jvm]" classname="com.kitshousetour.engine.KitStateMachineTest" time="0.0"/>
+  <testcase name="timedMoodRemainsBeforeExpiry[jvm]" classname="com.kitshousetour.engine.KitStateMachineTest" time="0.0"/>
+  <testcase name="idleFor59SecondsPreservesMood[jvm]" classname="com.kitshousetour.engine.KitStateMachineTest" time="0.001"/>
+  <testcase name="repeatRoomVisitPreservesMoodAndExpiry[jvm]" classname="com.kitshousetour.engine.KitStateMachineTest" time="0.0"/>
+  <testcase name="idleDoesNotResetAnAlreadyTiredMood[jvm]" classname="com.kitshousetour.engine.KitStateMachineTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

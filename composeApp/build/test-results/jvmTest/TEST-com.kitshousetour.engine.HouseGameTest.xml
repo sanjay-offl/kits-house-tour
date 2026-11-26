@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.kitshousetour.engine.HouseGameTest" tests="16" skipped="0" failures="0" errors="0" timestamp="2026-11-26T13:13:16.343Z" hostname="sanjay-HP-ProBook-x360-435-G8-Notebook-PC" time="0.011">
+  <properties/>
+  <testcase name="lessonCanBeCompletedAfterRoomIsVisited[jvm]" classname="com.kitshousetour.engine.HouseGameTest" time="0.004"/>
+  <testcase name="quizIsLockedWithFourRoomsVisited[jvm]" classname="com.kitshousetour.engine.HouseGameTest" time="0.001"/>
+  <testcase name="twoCorrectAnswersEarnNoBadge[jvm]" classname="com.kitshousetour.engine.HouseGameTest" time="0.0"/>
+  <testcase name="oneCorrectAnswerEarnsNoBadge[jvm]" classname="com.kitshousetour.engine.HouseGameTest" time="0.001"/>
+  <testcase name="fourCorrectAnswersEarnSilver[jvm]" classname="com.kitshousetour.engine.HouseGameTest" time="0.0"/>
+  <testcase name="visitingRoomAddsItWithoutChangingOtherProgress[jvm]" classname="com.kitshousetour.engine.HouseGameTest" time="0.001"/>
+  <testcase name="correctAnswerCountAboveFiveIsRejected[jvm]" classname="com.kitshousetour.engine.HouseGameTest" time="0.0"/>
+  <testcase name="threeCorrectAnswersEarnBronze[jvm]" classname="com.kitshousetour.engine.HouseGameTest" time="0.0"/>
+  <testcase name="quizIsLockedWithNoRoomsVisited[jvm]" classname="com.kitshousetour.engine.HouseGameTest" time="0.0"/>
+  <testcase name="zeroCorrectAnswersEarnNoBadge[jvm]" classname="com.kitshousetour.engine.HouseGameTest" time="0.0"/>
+  <testcase name="completingLessonTwiceIsIdempotent[jvm]" classname="com.kitshousetour.engine.HouseGameTest" time="0.001"/>
+  <testcase name="lessonCannotBeCompletedBeforeRoomIsVisited[jvm]" classname="com.kitshousetour.engine.HouseGameTest" time="0.0"/>
+  <testcase name="fiveCorrectAnswersEarnGold[jvm]" classname="com.kitshousetour.engine.HouseGameTest" time="0.0"/>
+  <testcase name="visitingSameRoomTwiceDoesNotDuplicateIt[jvm]" classname="com.kitshousetour.engine.HouseGameTest" time="0.0"/>
+  <testcase name="quizUnlocksOnlyWhenAllFiveRoomsAreVisited[jvm]" classname="com.kitshousetour.engine.HouseGameTest" time="0.0"/>
+  <testcase name="negativeCorrectAnswerCountIsRejected[jvm]" classname="com.kitshousetour.engine.HouseGameTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
