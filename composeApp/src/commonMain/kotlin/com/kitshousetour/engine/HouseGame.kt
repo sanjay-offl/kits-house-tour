@@ -15,6 +15,10 @@ data class GameProgress(
 fun visitRoom(progress: GameProgress, roomId: RoomId): GameProgress =
     progress.copy(visitedRooms = progress.visitedRooms + roomId)
 
+/** Returns whether [roomId] has not yet been visited in [progress]. */
+fun isFirstVisit(progress: GameProgress, roomId: RoomId): Boolean =
+    roomId !in progress.visitedRooms
+
 /**
  * Returns progress with the lesson completed if its room was visited.
  * Otherwise, the original progress is returned unchanged.

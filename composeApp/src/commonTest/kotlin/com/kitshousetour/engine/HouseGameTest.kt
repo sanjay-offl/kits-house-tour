@@ -44,6 +44,20 @@ class HouseGameTest {
     }
 
     @Test
+    fun unvisitedRoomIsIdentifiedAsFirstVisit() {
+        val progress = GameProgress(emptySet(), emptySet(), null, Badge.NONE)
+
+        assertTrue(isFirstVisit(progress, RoomId.STUDY))
+    }
+
+    @Test
+    fun previouslyVisitedRoomIsNotIdentifiedAsFirstVisit() {
+        val progress = GameProgress(setOf(RoomId.STUDY), emptySet(), null, Badge.NONE)
+
+        assertFalse(isFirstVisit(progress, RoomId.STUDY))
+    }
+
+    @Test
     fun lessonCannotBeCompletedBeforeRoomIsVisited() {
         val progress = GameProgress(emptySet(), emptySet(), null, Badge.NONE)
 
