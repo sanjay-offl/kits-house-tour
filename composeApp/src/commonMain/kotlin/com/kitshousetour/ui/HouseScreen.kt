@@ -2,11 +2,14 @@ package com.kitshousetour.ui
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -15,7 +18,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Card
@@ -72,6 +74,7 @@ fun HouseScreen(
     tapTrigger: Int,
     currentRoomId: RoomId,
     quizUnlocked: Boolean,
+    reducedMotion: Boolean,
     onOpenQuiz: () -> Unit,
     onOpenBadges: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -143,6 +146,7 @@ fun HouseScreen(
             SpeechBubble(
                 text = it,
                 trigger = speechTrigger,
+                reducedMotion = reducedMotion,
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
                     .padding(top = 8.dp, bottom = 4.dp),
@@ -171,22 +175,29 @@ fun HouseScreen(
             val kitSize = 48.dp
             val kitOffsetX = 12.dp + innerWidth * kitPosition.xFraction - kitSize / 2
             val kitOffsetY = 12.dp + innerHeight * kitPosition.yFraction - kitSize / 2
+            val kitTranslationX = with(LocalDensity.current) { kitOffsetX.toPx() }
+            val kitTranslationY = with(LocalDensity.current) { kitOffsetY.toPx() }
 
-            LaunchedEffect(pendingRoom, layout) {
+            LaunchedEffect(pendingRoom, layout, reducedMotion) {
                 val destination = pendingRoom ?: return@LaunchedEffect
                 val target = roomTarget(destination.id, layout)
-                coroutineScope {
-                    launch {
-                        kitX.animateTo(
-                            targetValue = target.xFraction,
-                            animationSpec = tween(260, easing = FastOutSlowInEasing),
-                        )
-                    }
-                    launch {
-                        kitY.animateTo(
-                            targetValue = target.yFraction,
-                            animationSpec = tween(260, easing = FastOutSlowInEasing),
-                        )
+                if (reducedMotion) {
+                    kitX.snapTo(target.xFraction)
+                    kitY.snapTo(target.yFraction)
+                } else {
+                    coroutineScope {
+                        launch {
+                            kitX.animateTo(
+                                targetValue = target.xFraction,
+                                animationSpec = tween(240, easing = FastOutSlowInEasing),
+                            )
+                        }
+                        launch {
+                            kitY.animateTo(
+                                targetValue = target.yFraction,
+                                animationSpec = tween(240, easing = FastOutSlowInEasing),
+                            )
+                        }
                     }
                 }
                 latestOnRoomSelected(destination)
@@ -213,12 +224,20 @@ fun HouseScreen(
                             },
                             onDragEnd = {
                                 dragScope.launch {
-                                    dragX.animateTo(0f, animationSpec = spring())
+                                    if (reducedMotion) {
+                                        dragX.snapTo(0f)
+                                    } else {
+                                        dragX.animateTo(0f, animationSpec = spring())
+                                    }
                                 }
                             },
                             onDragCancel = {
                                 dragScope.launch {
-                                    dragX.animateTo(0f, animationSpec = spring())
+                                    if (reducedMotion) {
+                                        dragX.snapTo(0f)
+                                    } else {
+                                        dragX.animateTo(0f, animationSpec = spring())
+                                    }
                                 }
                             },
                         )
@@ -248,6 +267,7 @@ fun HouseScreen(
                                     RoomCard(
                                         room = room,
                                         isLocked = !isRoomUnlocked(progress, room.id),
+                                        reducedMotion = reducedMotion,
                                         highlight = roomHighlight(
                                             kitPosition,
                                             roomTarget(room.id, layout),
@@ -270,6 +290,7 @@ fun HouseScreen(
                             RoomCard(
                                 room = room,
                                 isLocked = !isRoomUnlocked(progress, room.id),
+                                reducedMotion = reducedMotion,
                                 highlight = roomHighlight(
                                     kitPosition,
                                     roomTarget(room.id, layout),
@@ -293,10 +314,14 @@ fun HouseScreen(
                 KitCharacter(
                     mood = mood,
                     tapTrigger = tapTrigger,
+                    reducedMotion = reducedMotion,
                     onClick = onKitTapped,
                     modifier = Modifier
-                        .offset(x = kitOffsetX, y = kitOffsetY)
                         .size(kitSize)
+                        .graphicsLayer {
+                            translationX = kitTranslationX
+                            translationY = kitTranslationY
+                        }
                         .zIndex(1f),
                 )
             }
@@ -309,9 +334,17 @@ private fun RoomCard(
     room: Room,
     isLocked: Boolean,
     highlight: Float,
+    reducedMotion: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(
+        targetValue = if (isPressed && !reducedMotion) 0.97f else 1f,
+        animationSpec = tween(120, easing = FastOutSlowInEasing),
+        label = "room-card-press",
+    )
     val borderColor = blendColors(
         from = KitPalette.Border,
         to = KitPalette.AccentHighlight.copy(alpha = 0.65f),
@@ -324,8 +357,13 @@ private fun RoomCard(
     )
     Card(
         onClick = onClick,
+        interactionSource = interactionSource,
         modifier = modifier
             .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = pressScale
+                scaleY = pressScale
+            }
             .semantics {
                 contentDescription = RoomText.accessibilityLabel(room, isLocked)
             },

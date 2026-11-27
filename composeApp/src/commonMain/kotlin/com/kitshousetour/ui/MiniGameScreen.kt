@@ -2,21 +2,28 @@ package com.kitshousetour.ui
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
@@ -35,6 +42,7 @@ import com.kitshousetour.engine.validateMiniGame
 fun MiniGameScreen(
     game: MiniGame,
     progress: GameProgress,
+    reducedMotion: Boolean,
     onScore: (RoomId, Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -42,6 +50,25 @@ fun MiniGameScreen(
     val scrollState = rememberScrollState()
     var tokenOrder by remember(game.id) { mutableStateOf(emptyList<String>()) }
     var outcome by remember(game.id) { mutableStateOf<MiniGameOutcome?>(null) }
+    val hasOutcome = outcome != null
+    val feedbackAlpha by animateFloatAsState(
+        targetValue = if (hasOutcome) 1f else 0f,
+        animationSpec = tween(
+            durationMillis = when {
+                reducedMotion && hasOutcome -> 120
+                reducedMotion -> 100
+                hasOutcome -> 180
+                else -> 140
+            },
+            easing = if (hasOutcome) LinearOutSlowInEasing else FastOutLinearInEasing,
+        ),
+        label = "mini-game-feedback-alpha",
+    )
+    val feedbackScale by animateFloatAsState(
+        targetValue = if (reducedMotion || hasOutcome) 1f else 0.97f,
+        animationSpec = tween(160, easing = LinearOutSlowInEasing),
+        label = "mini-game-feedback-scale",
+    )
     val completed = progress.miniGameScores[game.roomId] == 1
     val totalScore = progress.miniGameScores.values.sum()
 
@@ -175,20 +202,31 @@ fun MiniGameScreen(
             }
         }
 
-        outcome?.let { answer ->
-            Text(
-                text = if (answer.isCorrect) {
-                    MiniGameText.CORRECT_FEEDBACK
-                } else {
-                    MiniGameText.INCORRECT_FEEDBACK
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 32.dp)
+                .graphicsLayer {
+                    alpha = feedbackAlpha
+                    scaleX = feedbackScale
+                    scaleY = feedbackScale
                 },
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (answer.isCorrect) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-            )
+        ) {
+            outcome?.let { answer ->
+                Text(
+                    text = if (answer.isCorrect) {
+                        MiniGameText.CORRECT_FEEDBACK
+                    } else {
+                        MiniGameText.INCORRECT_FEEDBACK
+                    },
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (answer.isCorrect) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                )
+            }
         }
     }
 }

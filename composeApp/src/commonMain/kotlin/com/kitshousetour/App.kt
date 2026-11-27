@@ -1,8 +1,9 @@
 package com.kitshousetour
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -55,6 +56,7 @@ fun App() {
     val progressRepository = remember { JsonProgressRepository() }
     var playerProgress by remember { mutableStateOf(progressRepository.loadOrCreate()) }
     var destination by remember { mutableStateOf<AppDestination>(AppDestination.House) }
+    var navigationDirection by remember { mutableIntStateOf(1) }
     var currentRoomId by remember {
         mutableStateOf(
             RoomId.entries.lastOrNull { roomId ->
@@ -70,6 +72,11 @@ fun App() {
     fun updateProgress(updated: PlayerProgress) {
         progressRepository.save(updated)
         playerProgress = updated
+    }
+
+    fun navigateTo(next: AppDestination, direction: Int) {
+        navigationDirection = direction
+        destination = next
     }
 
     fun speakIfEnabled(text: String) {
@@ -100,10 +107,37 @@ fun App() {
                 targetState = destination,
                 transitionSpec = {
                     if (playerProgress.settings.reducedMotion) {
-                        EnterTransition.None togetherWith ExitTransition.None
+                        fadeIn(animationSpec = tween(120)) togetherWith
+                            fadeOut(animationSpec = tween(120))
                     } else {
-                        (slideInHorizontally { it / 4 } + fadeIn()) togetherWith
-                            (slideOutHorizontally { -it / 4 } + fadeOut())
+                        val direction = navigationDirection
+                        (
+                            slideInHorizontally(
+                                animationSpec = tween(
+                                    durationMillis = 220,
+                                    easing = LinearOutSlowInEasing,
+                                ),
+                            ) { direction * it / 4 } +
+                                fadeIn(
+                                    animationSpec = tween(
+                                        durationMillis = 220,
+                                        easing = LinearOutSlowInEasing,
+                                    ),
+                                )
+                            ) togetherWith (
+                            slideOutHorizontally(
+                                animationSpec = tween(
+                                    durationMillis = 180,
+                                    easing = FastOutLinearInEasing,
+                                ),
+                            ) { -direction * it / 4 } +
+                                fadeOut(
+                                    animationSpec = tween(
+                                        durationMillis = 160,
+                                        easing = FastOutLinearInEasing,
+                                    ),
+                                )
+                            )
                     }
                 },
                 label = NavigationText.TRANSITION_LABEL,
@@ -117,9 +151,10 @@ fun App() {
                         tapTrigger = tapTrigger,
                         currentRoomId = currentRoomId,
                         quizUnlocked = isQuizUnlocked(playerProgress.game),
-                        onOpenQuiz = { destination = AppDestination.Quiz },
-                        onOpenBadges = { destination = AppDestination.Badges },
-                        onOpenSettings = { destination = AppDestination.Settings },
+                        reducedMotion = playerProgress.settings.reducedMotion,
+                        onOpenQuiz = { navigateTo(AppDestination.Quiz, 1) },
+                        onOpenBadges = { navigateTo(AppDestination.Badges, 1) },
+                        onOpenSettings = { navigateTo(AppDestination.Settings, 1) },
                         onRoomSelected = { selected ->
                             val updatedMood = onRoomEntered(
                                 isFirstVisit(playerProgress.game, selected.id),
@@ -137,7 +172,7 @@ fun App() {
                             speechTrigger += 1
                             speakIfEnabled(line)
                             currentRoomId = selected.id
-                            destination = AppDestination.RoomDestination(selected)
+                            navigateTo(AppDestination.RoomDestination(selected), 1)
                         },
                         onLockedRoomTapped = {
                             val updatedMood = moodOnLockedRoomTapped(
@@ -164,6 +199,7 @@ fun App() {
                         room = screen.room,
                         progress = playerProgress.game,
                         isLessonCompleted = screen.room.id in playerProgress.game.completedLessons,
+                        reducedMotion = playerProgress.settings.reducedMotion,
                         onLessonComplete = {
                             val lesson = LessonText.lessonFor(screen.room.id)
                             val updatedMood = onLessonFinished(
@@ -190,7 +226,7 @@ fun App() {
                                 ),
                             )
                         },
-                        onBack = { destination = AppDestination.House },
+                        onBack = { navigateTo(AppDestination.House, -1) },
                     )
 
                     AppDestination.Quiz -> QuizScreen(
@@ -202,12 +238,12 @@ fun App() {
                                 ),
                             )
                         },
-                        onBack = { destination = AppDestination.House },
+                        onBack = { navigateTo(AppDestination.House, -1) },
                     )
 
                     AppDestination.Badges -> BadgeScreen(
                         earnedBadge = playerProgress.game.badge,
-                        onBack = { destination = AppDestination.House },
+                        onBack = { navigateTo(AppDestination.House, -1) },
                     )
 
                     AppDestination.Settings -> SettingsScreen(
@@ -215,7 +251,7 @@ fun App() {
                         onSettingsChanged = { settings ->
                             updateProgress(playerProgress.copy(settings = settings))
                         },
-                        onBack = { destination = AppDestination.House },
+                        onBack = { navigateTo(AppDestination.House, -1) },
                     )
                 }
             }

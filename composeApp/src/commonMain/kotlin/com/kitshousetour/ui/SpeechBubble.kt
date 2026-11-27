@@ -1,6 +1,8 @@
 package com.kitshousetour.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -27,7 +29,12 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 
 @Composable
-fun SpeechBubble(text: String, trigger: Int, modifier: Modifier = Modifier) {
+fun SpeechBubble(
+    text: String,
+    trigger: Int,
+    reducedMotion: Boolean,
+    modifier: Modifier = Modifier,
+) {
     var visible by remember(trigger) { mutableStateOf(true) }
     val bubbleColor = MaterialTheme.colorScheme.secondaryContainer
 
@@ -39,8 +46,24 @@ fun SpeechBubble(text: String, trigger: Int, modifier: Modifier = Modifier) {
     AnimatedVisibility(
         visible = visible,
         modifier = modifier,
-        enter = fadeIn(tween(220)) + scaleIn(initialScale = 0.85f, animationSpec = tween(220)),
-        exit = fadeOut(tween(180)) + scaleOut(targetScale = 0.85f, animationSpec = tween(180)),
+        enter = if (reducedMotion) {
+            fadeIn(tween(120))
+        } else {
+            fadeIn(tween(180, easing = LinearOutSlowInEasing)) +
+                scaleIn(
+                    initialScale = 0.97f,
+                    animationSpec = tween(180, easing = LinearOutSlowInEasing),
+                )
+        },
+        exit = if (reducedMotion) {
+            fadeOut(tween(100))
+        } else {
+            fadeOut(tween(140, easing = FastOutLinearInEasing)) +
+                scaleOut(
+                    targetScale = 0.97f,
+                    animationSpec = tween(140, easing = FastOutLinearInEasing),
+                )
+        },
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Surface(

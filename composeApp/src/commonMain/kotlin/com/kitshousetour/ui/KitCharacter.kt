@@ -6,6 +6,8 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -40,15 +42,20 @@ import kotlinx.coroutines.delay
 fun KitCharacter(
     mood: KitMood,
     tapTrigger: Int,
+    reducedMotion: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val targetBodyColor = kitColorForMood(mood)
     val bodyColor by animateColorAsState(
-        targetValue = kitColorForMood(mood),
-        animationSpec = tween(350),
+        targetValue = targetBodyColor,
+        animationSpec = if (reducedMotion) {
+            snap()
+        } else {
+            tween(240, easing = LinearOutSlowInEasing)
+        },
         label = "kit-mood-color",
     )
-    val transition = rememberInfiniteTransition(label = "kit-idle-animation")
     val bobDistance = when (mood) {
         KitMood.Tired -> 3f
         KitMood.Proud -> 12f
@@ -56,21 +63,31 @@ fun KitCharacter(
     }
     val bobDurationMillis = when (mood) {
         KitMood.Tired -> 1_800
-        KitMood.Proud -> 420
+        KitMood.Proud -> 280
         else -> 1_050
     }
-    val bobOffset by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = bobDistance,
-        animationSpec = infiniteRepeatable(
-            animation = tween(bobDurationMillis, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "kit-bob",
-    )
+    val bobOffset = if (reducedMotion) {
+        0f
+    } else {
+        val transition = rememberInfiniteTransition(label = "kit-idle-animation")
+        val animatedOffset by transition.animateFloat(
+            initialValue = 0f,
+            targetValue = bobDistance,
+            animationSpec = infiniteRepeatable(
+                animation = tween(bobDurationMillis, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "kit-bob",
+        )
+        animatedOffset
+    }
 
     var eyesClosed by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
+    LaunchedEffect(reducedMotion) {
+        if (reducedMotion) {
+            eyesClosed = false
+            return@LaunchedEffect
+        }
         while (true) {
             delay(3_000)
             eyesClosed = true
@@ -80,18 +97,18 @@ fun KitCharacter(
     }
 
     var tapScaleTarget by remember { mutableFloatStateOf(1f) }
-    LaunchedEffect(tapTrigger) {
-        if (tapTrigger > 0) {
-            tapScaleTarget = 0.88f
-            delay(90)
-            tapScaleTarget = 1.08f
-            delay(100)
+    LaunchedEffect(tapTrigger, reducedMotion) {
+        if (reducedMotion || tapTrigger == 0) {
+            tapScaleTarget = 1f
+        } else {
+            tapScaleTarget = 0.97f
+            delay(70)
             tapScaleTarget = 1f
         }
     }
     val tapScale by animateFloatAsState(
         targetValue = tapScaleTarget,
-        animationSpec = tween(100, easing = FastOutSlowInEasing),
+        animationSpec = tween(70, easing = FastOutSlowInEasing),
         label = "kit-tap-reaction",
     )
 
@@ -110,7 +127,7 @@ fun KitCharacter(
                 .size(148.dp)
                 .graphicsLayer {
                     translationY = bobOffset
-                    rotationZ = if (mood == KitMood.Curious) -6f else 0f
+                    rotationZ = if (mood == KitMood.Curious && !reducedMotion) -6f else 0f
                     scaleX = 1f + (1f - tapScale) * 0.45f
                     scaleY = tapScale
                 },

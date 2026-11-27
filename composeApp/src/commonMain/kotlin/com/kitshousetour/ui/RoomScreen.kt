@@ -31,6 +31,7 @@ fun RoomScreen(
     room: Room,
     progress: GameProgress,
     isLessonCompleted: Boolean,
+    reducedMotion: Boolean,
     onLessonComplete: () -> Unit,
     onReadAloud: (String) -> Unit,
     onMiniGameScore: (RoomId, Int) -> Unit,
@@ -63,6 +64,7 @@ fun RoomScreen(
             MiniGameScreen(
                 game = MiniGameText.gameFor(room.id),
                 progress = progress,
+                reducedMotion = reducedMotion,
                 onScore = onMiniGameScore,
                 modifier = Modifier
                     .fillMaxWidth()
