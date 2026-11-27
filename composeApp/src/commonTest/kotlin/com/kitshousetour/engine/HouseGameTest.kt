@@ -1,6 +1,7 @@
 package com.kitshousetour.engine
 
 import com.kitshousetour.domain.Badge
+import com.kitshousetour.domain.QuizQuestion
 import com.kitshousetour.domain.RoomId
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -151,5 +152,149 @@ class HouseGameTest {
     @Test
     fun correctAnswerCountAboveFiveIsRejected() {
         assertFailsWith<IllegalArgumentException> { scoreQuiz(6) }
+    }
+
+    @Test
+    fun miniGameBadgeThresholdsAwardBronzeSilverAndGold() {
+        assertEquals(Badge.NONE, badgeForMiniGameScore(0))
+        assertEquals(Badge.BRONZE, badgeForMiniGameScore(1))
+        assertEquals(Badge.BRONZE, badgeForMiniGameScore(2))
+        assertEquals(Badge.SILVER, badgeForMiniGameScore(3))
+        assertEquals(Badge.SILVER, badgeForMiniGameScore(4))
+        assertEquals(Badge.GOLD, badgeForMiniGameScore(5))
+    }
+
+    @Test
+    fun miniGameBadgeScoreOutsideFiveRoomsIsRejected() {
+        assertFailsWith<IllegalArgumentException> { badgeForMiniGameScore(-1) }
+        assertFailsWith<IllegalArgumentException> { badgeForMiniGameScore(6) }
+    }
+
+    @Test
+    fun miniGameResultCannotBeRecordedBeforeVisitingTheRoom() {
+        val progress = GameProgress(emptySet(), emptySet(), null, Badge.NONE)
+
+        assertEquals(progress, recordMiniGameScore(progress, RoomId.LIVING_ROOM, 1))
+    }
+
+    @Test
+    fun recordingMiniGameWinAddsOnePointAndBronzeBadge() {
+        val progress = GameProgress(setOf(RoomId.LIVING_ROOM), emptySet(), null, Badge.NONE)
+
+        val updated = recordMiniGameScore(progress, RoomId.LIVING_ROOM, 1)
+
+        assertEquals(mapOf(RoomId.LIVING_ROOM to 1), updated.miniGameScores)
+        assertEquals(Badge.BRONZE, updated.badge)
+    }
+
+    @Test
+    fun repeatedWinForOneRoomDoesNotIncreaseTheTotalScore() {
+        val progress = GameProgress(
+            visitedRooms = setOf(RoomId.LIVING_ROOM),
+            completedLessons = emptySet(),
+            quizScore = null,
+            badge = Badge.BRONZE,
+            miniGameScores = mapOf(RoomId.LIVING_ROOM to 1),
+        )
+
+        assertEquals(progress, recordMiniGameScore(progress, RoomId.LIVING_ROOM, 1))
+    }
+
+    @Test
+    fun miniGameProgressDoesNotLowerAnExistingBadge() {
+        val progress = GameProgress(
+            visitedRooms = setOf(RoomId.LIVING_ROOM),
+            completedLessons = emptySet(),
+            quizScore = null,
+            badge = Badge.SILVER,
+        )
+
+        assertEquals(
+            Badge.SILVER,
+            recordMiniGameScore(progress, RoomId.LIVING_ROOM, 1).badge,
+        )
+    }
+
+    @Test
+    fun roomMiniGameScoreMustBeZeroOrOne() {
+        val progress = GameProgress(setOf(RoomId.LIVING_ROOM), emptySet(), null, Badge.NONE)
+
+        assertFailsWith<IllegalArgumentException> {
+            recordMiniGameScore(progress, RoomId.LIVING_ROOM, 2)
+        }
+    }
+
+    @Test
+    fun quizAnswersScoreEveryValueFromZeroThroughFive() {
+        val questions = quizQuestions()
+
+        (0..5).forEach { expectedScore ->
+            val answers = questions.mapIndexed { index, question ->
+                if (index < expectedScore) {
+                    question.correctIndex
+                } else {
+                    (question.correctIndex + 1) % question.options.size
+                }
+            }
+
+            assertEquals(expectedScore, calculateQuizScore(questions, answers))
+        }
+    }
+
+    @Test
+    fun quizScoringRejectsMissingQuestionsAndAnswers() {
+        val questions = quizQuestions()
+
+        assertFailsWith<IllegalArgumentException> { calculateQuizScore(emptyList(), emptyList()) }
+        assertFailsWith<IllegalArgumentException> { calculateQuizScore(questions, emptyList()) }
+        assertFailsWith<IllegalArgumentException> {
+            calculateQuizScore(questions, List(questions.size) { null })
+        }
+        assertFailsWith<IllegalArgumentException> {
+            calculateQuizScore(questions, List(questions.size) { 99 })
+        }
+    }
+
+    @Test
+    fun quizCannotBeRecordedUntilEveryRoomIsVisited() {
+        val progress = GameProgress(emptySet(), emptySet(), null, Badge.NONE)
+
+        assertFailsWith<IllegalArgumentException> { recordQuizScore(progress, 5) }
+    }
+
+    @Test
+    fun recordingQuizResultPersistsTheScoreAndBadge() {
+        val progress = GameProgress(RoomId.entries.toSet(), emptySet(), null, Badge.NONE)
+
+        val updated = recordQuizScore(progress, 4)
+
+        assertEquals(4, updated.quizScore)
+        assertEquals(Badge.SILVER, updated.badge)
+    }
+
+    @Test
+    fun quizRetainsTheBestScoreAndPreviouslyEarnedBadge() {
+        val progress = GameProgress(
+            visitedRooms = RoomId.entries.toSet(),
+            completedLessons = emptySet(),
+            quizScore = 5,
+            badge = Badge.GOLD,
+        )
+
+        val updated = recordQuizScore(progress, 2)
+
+        assertEquals(5, updated.quizScore)
+        assertEquals(Badge.GOLD, updated.badge)
+    }
+
+    @Test
+    fun badgeScreenCanCheckEarnedAndLockedStates() {
+        assertTrue(hasEarnedBadge(Badge.SILVER, Badge.BRONZE))
+        assertTrue(hasEarnedBadge(Badge.SILVER, Badge.SILVER))
+        assertFalse(hasEarnedBadge(Badge.BRONZE, Badge.GOLD))
+    }
+
+    private fun quizQuestions() = List(5) { index ->
+        QuizQuestion("question-$index", "Choose", listOf("A", "B", "C"), 0)
     }
 }

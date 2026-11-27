@@ -21,8 +21,10 @@ class ProgressRepositoryTest {
                 completedLessons = setOf(RoomId.LIVING_ROOM),
                 quizScore = 4,
                 badge = Badge.SILVER,
+                miniGameScores = mapOf(RoomId.LIVING_ROOM to 1, RoomId.KITCHEN to 1),
             ),
             mood = MoodState(KitMood.Curious, expiresAtMillis = 123_456L),
+            settings = PlayerSettings(speechMuted = true, reducedMotion = true),
         )
 
         repository.save(progress)
@@ -45,6 +47,61 @@ class ProgressRepositoryTest {
         assertNotNull(reportedMessage)
         assertNotNull(file.contents)
         assertEquals(loaded, JsonProgressRepository(file).loadOrCreate())
+    }
+
+    @Test
+    fun olderProgressWithoutMiniGameScoresLoadsWithAnEmptyScoreMap() {
+        val file = InMemoryProgressFile(
+            contents = """
+                {
+                  "visitedRooms": ["LIVING_ROOM"],
+                  "completedLessons": [],
+                  "quizScore": null,
+                  "badge": "NONE",
+                  "mood": "HAPPY",
+                  "moodExpiresAtMillis": null
+                }
+            """.trimIndent(),
+        )
+
+        assertEquals(emptyMap(), JsonProgressRepository(file).loadOrCreate().game.miniGameScores)
+    }
+
+    @Test
+    fun olderProgressWithoutSettingsUsesDefaultPreferences() {
+        val file = InMemoryProgressFile(
+            contents = """
+                {
+                  "visitedRooms": [],
+                  "completedLessons": [],
+                  "quizScore": null,
+                  "badge": "NONE",
+                  "mood": "HAPPY",
+                  "moodExpiresAtMillis": null
+                }
+            """.trimIndent(),
+        )
+
+        assertEquals(PlayerSettings(), JsonProgressRepository(file).loadOrCreate().settings)
+    }
+
+    @Test
+    fun invalidSavedMiniGameScoreIsHandledAsCorruptData() {
+        val file = InMemoryProgressFile(
+            contents = """
+                {
+                  "visitedRooms": [],
+                  "completedLessons": [],
+                  "quizScore": null,
+                  "badge": "NONE",
+                  "mood": "HAPPY",
+                  "moodExpiresAtMillis": null,
+                  "miniGameScores": {"LIVING_ROOM": 2}
+                }
+            """.trimIndent(),
+        )
+
+        assertEquals(freshPlayerProgress(), JsonProgressRepository(file).loadOrCreate())
     }
 
     @Test

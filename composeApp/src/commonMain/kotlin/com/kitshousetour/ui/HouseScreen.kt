@@ -22,6 +22,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -44,6 +45,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import com.kitshousetour.content.NavigationText
 import com.kitshousetour.content.RoomText
 import com.kitshousetour.domain.Room
 import com.kitshousetour.domain.RoomId
@@ -69,6 +71,10 @@ fun HouseScreen(
     speechTrigger: Int,
     tapTrigger: Int,
     currentRoomId: RoomId,
+    quizUnlocked: Boolean,
+    onOpenQuiz: () -> Unit,
+    onOpenBadges: () -> Unit,
+    onOpenSettings: () -> Unit,
     onRoomSelected: (Room) -> Unit,
     onLockedRoomTapped: () -> Unit,
     onKitTapped: () -> Unit,
@@ -92,6 +98,47 @@ fun HouseScreen(
             modifier = Modifier.padding(top = 4.dp),
             style = MaterialTheme.typography.bodyLarge,
         )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            TextButton(
+                onClick = onOpenQuiz,
+                enabled = quizUnlocked,
+                modifier = Modifier.semantics {
+                    contentDescription = if (quizUnlocked) {
+                        NavigationText.QUIZ_OPEN_DESCRIPTION
+                    } else {
+                        NavigationText.QUIZ_LOCKED_DESCRIPTION
+                    }
+                },
+            ) {
+                Text(NavigationText.QUIZ_BUTTON)
+            }
+            TextButton(
+                onClick = onOpenBadges,
+                modifier = Modifier.semantics {
+                    contentDescription = NavigationText.BADGES_DESCRIPTION
+                },
+            ) {
+                Text(NavigationText.BADGES_BUTTON)
+            }
+            TextButton(
+                onClick = onOpenSettings,
+                modifier = Modifier.semantics {
+                    contentDescription = NavigationText.SETTINGS_DESCRIPTION
+                },
+            ) {
+                Text(NavigationText.SETTINGS_BUTTON)
+            }
+        }
+        if (!quizUnlocked) {
+            Text(
+                text = NavigationText.QUIZ_LOCKED_HINT,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         speechText?.let {
             SpeechBubble(
                 text = it,

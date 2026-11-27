@@ -70,6 +70,9 @@ private data class StoredPlayerProgress(
     val badge: Badge,
     val mood: StoredKitMood,
     val moodExpiresAtMillis: Long?,
+    val miniGameScores: Map<RoomId, Int> = emptyMap(),
+    val speechMuted: Boolean = false,
+    val reducedMotion: Boolean = false,
 )
 
 private fun PlayerProgress.toStoredPlayerProgress(): StoredPlayerProgress =
@@ -80,11 +83,20 @@ private fun PlayerProgress.toStoredPlayerProgress(): StoredPlayerProgress =
         badge = game.badge,
         mood = mood.mood.toStoredKitMood(),
         moodExpiresAtMillis = mood.expiresAtMillis,
+        miniGameScores = game.miniGameScores,
+        speechMuted = settings.speechMuted,
+        reducedMotion = settings.reducedMotion,
     )
 
 private fun StoredPlayerProgress.toPlayerProgress(): PlayerProgress {
     require(quizScore == null || quizScore in 0..5) {
         "Saved quiz score must be between 0 and 5."
+    }
+    require(miniGameScores.values.all { it in 0..1 }) {
+        "Saved mini-game scores must be zero or one."
+    }
+    require(miniGameScores.values.sum() <= RoomId.entries.size) {
+        "Saved total mini-game score must not exceed the number of rooms."
     }
     return PlayerProgress(
         game = GameProgress(
@@ -92,10 +104,15 @@ private fun StoredPlayerProgress.toPlayerProgress(): PlayerProgress {
             completedLessons = completedLessons,
             quizScore = quizScore,
             badge = badge,
+            miniGameScores = miniGameScores,
         ),
         mood = MoodState(
             mood = mood.toKitMood(),
             expiresAtMillis = moodExpiresAtMillis,
+        ),
+        settings = PlayerSettings(
+            speechMuted = speechMuted,
+            reducedMotion = reducedMotion,
         ),
     )
 }

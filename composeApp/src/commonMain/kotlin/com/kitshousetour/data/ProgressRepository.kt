@@ -9,6 +9,13 @@ import com.kitshousetour.engine.MoodState
 data class PlayerProgress(
     val game: GameProgress,
     val mood: MoodState,
+    val settings: PlayerSettings = PlayerSettings(),
+)
+
+/** User preferences persisted alongside game progress. */
+data class PlayerSettings(
+    val speechMuted: Boolean = false,
+    val reducedMotion: Boolean = false,
 )
 
 /** Supplies a fresh player state for a new or unreadable progress file. */

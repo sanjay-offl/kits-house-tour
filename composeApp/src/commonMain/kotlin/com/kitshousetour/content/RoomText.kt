@@ -25,7 +25,6 @@ object RoomText {
     const val APP_TITLE = "Kit's House Tour"
     const val BACK_BUTTON = "Back"
     const val BACK_BUTTON_DESCRIPTION = "Go back to the house"
-    const val PLACEHOLDER_LESSON = "Lesson coming in the next stage."
     const val LOCKED_LABEL = "Locked"
     const val LOCKED_ICON = "🔒"
     const val LOCKED_HINT = "Visit the previous room to unlock."

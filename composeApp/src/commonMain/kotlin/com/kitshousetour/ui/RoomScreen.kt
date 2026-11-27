@@ -3,7 +3,11 @@ package com.kitshousetour.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -14,12 +18,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.kitshousetour.content.LessonText
+import com.kitshousetour.content.MiniGameText
 import com.kitshousetour.content.RoomText
 import com.kitshousetour.domain.Room
+import com.kitshousetour.domain.RoomId
+import com.kitshousetour.engine.GameProgress
 
-/** Shows a room placeholder until its lesson is added in the next stage. */
+/** Shows the room lesson, its mini-game, and a route back to the house. */
 @Composable
-fun RoomScreen(room: Room, onBack: () -> Unit) {
+fun RoomScreen(
+    room: Room,
+    progress: GameProgress,
+    isLessonCompleted: Boolean,
+    onLessonComplete: () -> Unit,
+    onReadAloud: (String) -> Unit,
+    onMiniGameScore: (RoomId, Int) -> Unit,
+    onBack: () -> Unit,
+) {
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
@@ -27,20 +43,30 @@ fun RoomScreen(room: Room, onBack: () -> Unit) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(
-                text = room.title,
+                text = "${RoomText.iconFor(room.id)} ${room.title}",
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.primary,
             )
-            Text(
-                text = RoomText.PLACEHOLDER_LESSON,
-                modifier = Modifier.padding(top = 12.dp, bottom = 24.dp),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
+            LessonCard(
+                lesson = LessonText.lessonFor(room.id),
+                isCompleted = isLessonCompleted,
+                onComplete = onLessonComplete,
+                onReadAloud = onReadAloud,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            MiniGameScreen(
+                game = MiniGameText.gameFor(room.id),
+                progress = progress,
+                onScore = onMiniGameScore,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 640.dp),
             )
             Button(
                 onClick = onBack,

@@ -1,6 +1,8 @@
 package com.kitshousetour
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -17,22 +19,33 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.kitshousetour.data.JsonProgressRepository
+import com.kitshousetour.data.PlayerProgress
 import com.kitshousetour.content.KitText
+import com.kitshousetour.content.LessonText
+import com.kitshousetour.content.NavigationText
+import com.kitshousetour.content.QuizText
+import com.kitshousetour.domain.RoomId
 import com.kitshousetour.domain.Room
+import com.kitshousetour.engine.completeLesson
 import com.kitshousetour.engine.isFirstVisit
+import com.kitshousetour.engine.isQuizUnlocked
 import com.kitshousetour.engine.isRoomUnlocked
+import com.kitshousetour.engine.onLessonFinished
 import com.kitshousetour.engine.onRoomEntered
 import com.kitshousetour.engine.onLockedRoomTapped as moodOnLockedRoomTapped
 import com.kitshousetour.engine.onTapKit
 import com.kitshousetour.engine.onTimedMoodExpired
+import com.kitshousetour.engine.recordMiniGameScore
+import com.kitshousetour.engine.recordQuizScore
 import com.kitshousetour.engine.visitRoom
-import com.kitshousetour.data.JsonProgressRepository
-import com.kitshousetour.data.PlayerProgress
-import com.kitshousetour.domain.RoomId
+import com.kitshousetour.platform.SpeechSynthesizer
+import com.kitshousetour.ui.BadgeScreen
 import com.kitshousetour.ui.HouseScreen
 import com.kitshousetour.ui.KitThemeTheme
+import com.kitshousetour.ui.QuizScreen
 import com.kitshousetour.ui.RoomScreen
-import com.kitshousetour.platform.SpeechSynthesizer
+import com.kitshousetour.ui.SettingsScreen
 import kotlinx.coroutines.delay
 import kotlin.time.Clock
 
@@ -41,7 +54,7 @@ import kotlin.time.Clock
 fun App() {
     val progressRepository = remember { JsonProgressRepository() }
     var playerProgress by remember { mutableStateOf(progressRepository.loadOrCreate()) }
-    var selectedRoom by remember { mutableStateOf<Room?>(null) }
+    var destination by remember { mutableStateOf<AppDestination>(AppDestination.House) }
     var currentRoomId by remember {
         mutableStateOf(
             RoomId.entries.lastOrNull { roomId ->
@@ -57,6 +70,12 @@ fun App() {
     fun updateProgress(updated: PlayerProgress) {
         progressRepository.save(updated)
         playerProgress = updated
+    }
+
+    fun speakIfEnabled(text: String) {
+        if (!playerProgress.settings.speechMuted) {
+            SpeechSynthesizer.speak(text)
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -78,25 +97,32 @@ fun App() {
             color = MaterialTheme.colorScheme.background,
         ) {
             AnimatedContent(
-                targetState = selectedRoom,
+                targetState = destination,
                 transitionSpec = {
-                    (slideInHorizontally { it / 4 } + fadeIn()) togetherWith
-                        (slideOutHorizontally { -it / 4 } + fadeOut())
+                    if (playerProgress.settings.reducedMotion) {
+                        EnterTransition.None togetherWith ExitTransition.None
+                    } else {
+                        (slideInHorizontally { it / 4 } + fadeIn()) togetherWith
+                            (slideOutHorizontally { -it / 4 } + fadeOut())
+                    }
                 },
-                label = "house-room-transition",
-            ) { room ->
-                if (room == null) {
-                    HouseScreen(
+                label = NavigationText.TRANSITION_LABEL,
+            ) { screen ->
+                when (screen) {
+                    AppDestination.House -> HouseScreen(
                         progress = playerProgress.game,
                         mood = playerProgress.mood.mood,
                         speechText = speechText,
                         speechTrigger = speechTrigger,
                         tapTrigger = tapTrigger,
                         currentRoomId = currentRoomId,
+                        quizUnlocked = isQuizUnlocked(playerProgress.game),
+                        onOpenQuiz = { destination = AppDestination.Quiz },
+                        onOpenBadges = { destination = AppDestination.Badges },
+                        onOpenSettings = { destination = AppDestination.Settings },
                         onRoomSelected = { selected ->
-                            val firstVisit = isFirstVisit(playerProgress.game, selected.id)
                             val updatedMood = onRoomEntered(
-                                firstVisit,
+                                isFirstVisit(playerProgress.game, selected.id),
                                 playerProgress.mood,
                                 Clock.System.now().toEpochMilliseconds(),
                             )
@@ -106,39 +132,101 @@ fun App() {
                                     mood = updatedMood,
                                 ),
                             )
-                            speechText = KitText.lineForMood(updatedMood.mood)
+                            val line = KitText.lineForMood(updatedMood.mood)
+                            speechText = line
                             speechTrigger += 1
+                            speakIfEnabled(line)
                             currentRoomId = selected.id
-                            selectedRoom = selected
+                            destination = AppDestination.RoomDestination(selected)
                         },
                         onLockedRoomTapped = {
                             val updatedMood = moodOnLockedRoomTapped(
                                 Clock.System.now().toEpochMilliseconds(),
                             )
                             updateProgress(playerProgress.copy(mood = updatedMood))
-                            speechText = KitText.lineForMood(updatedMood.mood)
+                            val line = KitText.lineForMood(updatedMood.mood)
+                            speechText = line
                             speechTrigger += 1
-                            speechText?.let(SpeechSynthesizer::speak)
+                            speakIfEnabled(line)
                         },
                         onKitTapped = {
                             val updatedMood = onTapKit(playerProgress.mood)
                             updateProgress(playerProgress.copy(mood = updatedMood))
                             tapTrigger += 1
-                            speechText = KitText.lineForMood(updatedMood.mood)
+                            val line = KitText.lineForMood(updatedMood.mood)
+                            speechText = line
                             speechTrigger += 1
-                            speechText?.let(SpeechSynthesizer::speak)
+                            speakIfEnabled(line)
                         },
                     )
-                } else {
-                    RoomScreen(
-                        room = room,
-                        onBack = {
-                            selectedRoom = null
-                            speechText = null
+
+                    is AppDestination.RoomDestination -> RoomScreen(
+                        room = screen.room,
+                        progress = playerProgress.game,
+                        isLessonCompleted = screen.room.id in playerProgress.game.completedLessons,
+                        onLessonComplete = {
+                            val lesson = LessonText.lessonFor(screen.room.id)
+                            val updatedMood = onLessonFinished(
+                                playerProgress.mood,
+                                Clock.System.now().toEpochMilliseconds(),
+                            )
+                            updateProgress(
+                                playerProgress.copy(
+                                    game = completeLesson(playerProgress.game, screen.room.id),
+                                    mood = updatedMood,
+                                ),
+                            )
+                            speakIfEnabled(lesson.kitSays)
                         },
+                        onReadAloud = ::speakIfEnabled,
+                        onMiniGameScore = { roomId, score ->
+                            updateProgress(
+                                playerProgress.copy(
+                                    game = recordMiniGameScore(
+                                        playerProgress.game,
+                                        roomId,
+                                        score,
+                                    ),
+                                ),
+                            )
+                        },
+                        onBack = { destination = AppDestination.House },
+                    )
+
+                    AppDestination.Quiz -> QuizScreen(
+                        questions = QuizText.questions,
+                        onFinished = { correctCount ->
+                            updateProgress(
+                                playerProgress.copy(
+                                    game = recordQuizScore(playerProgress.game, correctCount),
+                                ),
+                            )
+                        },
+                        onBack = { destination = AppDestination.House },
+                    )
+
+                    AppDestination.Badges -> BadgeScreen(
+                        earnedBadge = playerProgress.game.badge,
+                        onBack = { destination = AppDestination.House },
+                    )
+
+                    AppDestination.Settings -> SettingsScreen(
+                        settings = playerProgress.settings,
+                        onSettingsChanged = { settings ->
+                            updateProgress(playerProgress.copy(settings = settings))
+                        },
+                        onBack = { destination = AppDestination.House },
                     )
                 }
             }
         }
     }
+}
+
+private sealed interface AppDestination {
+    data object House : AppDestination
+    data class RoomDestination(val room: Room) : AppDestination
+    data object Quiz : AppDestination
+    data object Badges : AppDestination
+    data object Settings : AppDestination
 }
