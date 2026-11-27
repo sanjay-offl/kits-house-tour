@@ -26,23 +26,20 @@ object RoomText {
     const val BACK_BUTTON = "Back"
     const val BACK_BUTTON_DESCRIPTION = "Go back to the house"
     const val PLACEHOLDER_LESSON = "Lesson coming in the next stage."
-    const val THEME_CHOOSER_DESCRIPTION = "Choose a color palette"
-    const val PURPLE_PALETTE = "Purple"
-    const val WHITE_PALETTE = "White"
-    const val BLACK_PALETTE = "Black"
-    const val GREY_PALETTE = "Grey"
-    const val SELECT_PURPLE_PALETTE = "Select Purple palette"
-    const val SELECT_WHITE_PALETTE = "Select White palette"
-    const val SELECT_BLACK_PALETTE = "Select Black palette"
-    const val SELECT_GREY_PALETTE = "Select Grey palette"
-    const val DARK_MODE_LABEL = "Dark mode"
-    const val DARK_MODE_DESCRIPTION = "Toggle dark mode"
+    const val LOCKED_LABEL = "Locked"
+    const val LOCKED_ICON = "🔒"
+    const val LOCKED_HINT = "Visit the previous room to unlock."
 
     /** Returns the room's decorative icon. */
     fun iconFor(roomId: RoomId): String = icons.getValue(roomId)
 
     /** Returns an accessible description containing the room name and its tap prompt. */
-    fun accessibilityLabel(room: Room): String = "${room.title}. ${room.interactionPrompt}"
+    fun accessibilityLabel(room: Room, isLocked: Boolean): String =
+        if (isLocked) {
+            "${room.title}. $LOCKED_LABEL. $LOCKED_HINT"
+        } else {
+            "${room.title}. ${room.interactionPrompt}"
+        }
 
     /** Formats the visited-room count for the house screen. */
     fun progressLine(visitedCount: Int, roomCount: Int): String =

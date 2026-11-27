@@ -39,14 +39,12 @@ import kotlinx.coroutines.delay
 @Composable
 fun KitCharacter(
     mood: KitMood,
-    themeSettings: ThemeSettings,
     tapTrigger: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val colors = themeColors(themeSettings)
     val bodyColor by animateColorAsState(
-        targetValue = kitColorForMood(mood, colors),
+        targetValue = kitColorForMood(mood),
         animationSpec = tween(350),
         label = "kit-mood-color",
     )
@@ -120,7 +118,7 @@ fun KitCharacter(
             val centerX = size.width / 2f
             val bodyRadius = size.minDimension * 0.34f
             val bodyCenterY = size.height * 0.59f
-            val eyeColor = colors.face
+            val eyeColor = KitPalette.KitFace
             val earSize = Size(bodyRadius * 0.55f, bodyRadius * 0.9f)
 
             val tail = Path().apply {
@@ -183,8 +181,8 @@ fun KitCharacter(
             }
 
             val cheekY = bodyCenterY + bodyRadius * 0.12f
-            drawCircle(colors.cheek, bodyRadius * 0.12f, Offset(centerX - bodyRadius * 0.63f, cheekY))
-            drawCircle(colors.cheek, bodyRadius * 0.12f, Offset(centerX + bodyRadius * 0.63f, cheekY))
+            drawCircle(KitPalette.KitCheek, bodyRadius * 0.12f, Offset(centerX - bodyRadius * 0.63f, cheekY))
+            drawCircle(KitPalette.KitCheek, bodyRadius * 0.12f, Offset(centerX + bodyRadius * 0.63f, cheekY))
             drawArc(
                 color = eyeColor,
                 startAngle = 0f,

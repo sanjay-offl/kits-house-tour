@@ -19,6 +19,12 @@ fun visitRoom(progress: GameProgress, roomId: RoomId): GameProgress =
 fun isFirstVisit(progress: GameProgress, roomId: RoomId): Boolean =
     roomId !in progress.visitedRooms
 
+/** Returns whether all rooms before [roomId] in the tour order have been visited. */
+fun isRoomUnlocked(progress: GameProgress, roomId: RoomId): Boolean {
+    val roomIndex = RoomId.entries.indexOf(roomId)
+    return RoomId.entries.take(roomIndex).all { it in progress.visitedRooms }
+}
+
 /**
  * Returns progress with the lesson completed if its room was visited.
  * Otherwise, the original progress is returned unchanged.

@@ -3,222 +3,101 @@ package com.kitshousetour.ui
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import com.kitshousetour.engine.KitMood
+import kotlin.math.pow
 
-/** Selects one of the app's four color palettes. */
-enum class ThemePalette {
-    PURPLE,
-    WHITE,
-    BLACK,
-    GREY,
+/** The single dark palette used across Kit's House Tour. */
+object KitPalette {
+    val Background = Color(0xFF0B0B0F)
+    val Surface = Color(0xFF16161D)
+    val Border = Color.White.copy(alpha = 0.12f)
+    val Text = Color(0xFFFFFFFF)
+    val SecondaryText = Color(0xFFB3B3B3)
+    val Accent = Color(0xFF8B5CF6)
+    val AccentHighlight = Color(0xFFC4B5FD)
+    val AccentPressed = Color(0xFF5B21B6)
+    val OnAccent = Background
+    val OnAccentPressed = Text
+    val KitHappy = Accent
+    val KitCurious = AccentHighlight
+    val KitTired = SecondaryText
+    val KitProud = AccentHighlight
+    val KitFace = Background
+    val KitCheek = AccentHighlight
 }
 
-/** Stores the selected palette and whether its dark variant is active. */
-data class ThemeSettings(
-    val palette: ThemePalette = ThemePalette.PURPLE,
-    val isDark: Boolean = false,
-)
+/** WCAG contrast ratios for the foreground and background pairs used by the interface. */
+object KitPaletteContrast {
+    val TextOnBackground = contrastRatio(KitPalette.Text, KitPalette.Background)
+    val TextOnSurface = contrastRatio(KitPalette.Text, KitPalette.Surface)
+    val SecondaryTextOnBackground = contrastRatio(KitPalette.SecondaryText, KitPalette.Background)
+    val SecondaryTextOnSurface = contrastRatio(KitPalette.SecondaryText, KitPalette.Surface)
+    val AccentOnBackground = contrastRatio(KitPalette.Accent, KitPalette.Background)
+    val HighlightOnBackground = contrastRatio(KitPalette.AccentHighlight, KitPalette.Background)
+    val HighlightOnSurface = contrastRatio(KitPalette.AccentHighlight, KitPalette.Surface)
+    val OnAccentOnAccent = contrastRatio(KitPalette.OnAccent, KitPalette.Accent)
+    val OnBackgroundOnHighlight =
+        contrastRatio(KitPalette.Background, KitPalette.AccentHighlight)
+    val OnPressedAccentOnPressedAccent =
+        contrastRatio(KitPalette.OnAccentPressed, KitPalette.AccentPressed)
+}
 
-/** The semantic colors used by one palette variant. */
-data class PaletteColors(
-    val background: Color,
-    val surface: Color,
-    val primary: Color,
-    val secondary: Color,
-    val onPrimary: Color,
-    val text: Color,
-    val mutedText: Color,
-    val kitHappy: Color,
-    val kitCurious: Color,
-    val kitTired: Color,
-    val kitProud: Color,
-    val face: Color,
-    val cheek: Color,
-)
+/** Resolves the shared mascot color for a mood. */
+fun kitColorForMood(mood: KitMood): Color = when (mood) {
+    KitMood.Happy -> KitPalette.KitHappy
+    KitMood.Curious -> KitPalette.KitCurious
+    KitMood.Tired -> KitPalette.KitTired
+    KitMood.Proud -> KitPalette.KitProud
+}
 
-private val purpleLight = PaletteColors(
-    background = Color(0xFFF7F2FF),
-    surface = Color(0xFFFFFFFF),
-    primary = Color(0xFF6750A4),
-    secondary = Color(0xFFE9DDF7),
-    onPrimary = Color(0xFFFFFFFF),
-    text = Color(0xFF201A24),
-    mutedText = Color(0xFF665D70),
-    kitHappy = Color(0xFFF2B84B),
-    kitCurious = Color(0xFF75B9A2),
-    kitTired = Color(0xFF91A9C6),
-    kitProud = Color(0xFFE88B70),
-    face = Color(0xFF3D302B),
-    cheek = Color(0xFFE88989),
-)
+/** Calculates the WCAG contrast ratio between two opaque colors. */
+fun contrastRatio(foreground: Color, background: Color): Double {
+    val foregroundLuminance = relativeLuminance(foreground.toArgbLong())
+    val backgroundLuminance = relativeLuminance(background.toArgbLong())
+    val lighter = maxOf(foregroundLuminance, backgroundLuminance)
+    val darker = minOf(foregroundLuminance, backgroundLuminance)
+    return (lighter + 0.05) / (darker + 0.05)
+}
 
-private val purpleDark = PaletteColors(
-    background = Color(0xFF15111D),
-    surface = Color(0xFF211B2C),
-    primary = Color(0xFFD0BCFF),
-    secondary = Color(0xFF4F4267),
-    onPrimary = Color(0xFF381E72),
-    text = Color(0xFFF1ECF8),
-    mutedText = Color(0xFFC9BED8),
-    kitHappy = Color(0xFFFFCF68),
-    kitCurious = Color(0xFF8FD4BB),
-    kitTired = Color(0xFFAEC7E5),
-    kitProud = Color(0xFFFFA18A),
-    face = Color(0xFF352738),
-    cheek = Color(0xFFFFA1A1),
-)
+private fun Color.toArgbLong(): Long = toArgb().toLong() and 0xFFFFFFFFL
 
-private val whiteLight = PaletteColors(
-    background = Color(0xFFFFFFFF),
-    surface = Color(0xFFF7F7F7),
-    primary = Color(0xFF4A4A4A),
-    secondary = Color(0xFFE9E9E9),
-    onPrimary = Color(0xFFFFFFFF),
-    text = Color(0xFF171717),
-    mutedText = Color(0xFF606060),
-    kitHappy = Color(0xFFF2B84B),
-    kitCurious = Color(0xFF75B9A2),
-    kitTired = Color(0xFF91A9C6),
-    kitProud = Color(0xFFE88B70),
-    face = Color(0xFF3D302B),
-    cheek = Color(0xFFE88989),
-)
-
-private val whiteDark = PaletteColors(
-    background = Color(0xFF181818),
-    surface = Color(0xFF242424),
-    primary = Color(0xFFE6E6E6),
-    secondary = Color(0xFF3A3A3A),
-    onPrimary = Color(0xFF202020),
-    text = Color(0xFFF4F4F4),
-    mutedText = Color(0xFFC4C4C4),
-    kitHappy = Color(0xFFFFCF68),
-    kitCurious = Color(0xFF8FD4BB),
-    kitTired = Color(0xFFAEC7E5),
-    kitProud = Color(0xFFFFA18A),
-    face = Color(0xFF352738),
-    cheek = Color(0xFFFFA1A1),
-)
-
-private val blackLight = PaletteColors(
-    background = Color(0xFFF0F0F0),
-    surface = Color(0xFFFFFFFF),
-    primary = Color(0xFF111111),
-    secondary = Color(0xFFDADADA),
-    onPrimary = Color(0xFFFFFFFF),
-    text = Color(0xFF101010),
-    mutedText = Color(0xFF555555),
-    kitHappy = Color(0xFFE3A928),
-    kitCurious = Color(0xFF4B9D82),
-    kitTired = Color(0xFF718BAA),
-    kitProud = Color(0xFFD26D51),
-    face = Color(0xFF241E1A),
-    cheek = Color(0xFFD96D72),
-)
-
-private val blackDark = PaletteColors(
-    background = Color(0xFF050505),
-    surface = Color(0xFF111111),
-    primary = Color(0xFFE3E3E3),
-    secondary = Color(0xFF292929),
-    onPrimary = Color(0xFF080808),
-    text = Color(0xFFF5F5F5),
-    mutedText = Color(0xFFBDBDBD),
-    kitHappy = Color(0xFFFFD05E),
-    kitCurious = Color(0xFF83C9AA),
-    kitTired = Color(0xFF9AB4D5),
-    kitProud = Color(0xFFF08A6B),
-    face = Color(0xFF251E1A),
-    cheek = Color(0xFFF28A8E),
-)
-
-private val greyLight = PaletteColors(
-    background = Color(0xFFF1F2F4),
-    surface = Color(0xFFFFFFFF),
-    primary = Color(0xFF59636E),
-    secondary = Color(0xFFDDE1E5),
-    onPrimary = Color(0xFFFFFFFF),
-    text = Color(0xFF20252A),
-    mutedText = Color(0xFF5C646C),
-    kitHappy = Color(0xFFE8B44F),
-    kitCurious = Color(0xFF69A992),
-    kitTired = Color(0xFF879CB7),
-    kitProud = Color(0xFFDA8068),
-    face = Color(0xFF35302D),
-    cheek = Color(0xFFE18484),
-)
-
-private val greyDark = PaletteColors(
-    background = Color(0xFF202326),
-    surface = Color(0xFF2A2E32),
-    primary = Color(0xFFBAC4CE),
-    secondary = Color(0xFF41474D),
-    onPrimary = Color(0xFF25292D),
-    text = Color(0xFFE8EAEC),
-    mutedText = Color(0xFFB5BBC1),
-    kitHappy = Color(0xFFF9CA65),
-    kitCurious = Color(0xFF8BC8AE),
-    kitTired = Color(0xFFA5BAD7),
-    kitProud = Color(0xFFF2977E),
-    face = Color(0xFF34302D),
-    cheek = Color(0xFFF39797),
-)
-
-/** Resolves the selected palette and light/dark variant to its semantic colors. */
-fun themeColors(settings: ThemeSettings): PaletteColors =
-    when (settings.palette) {
-        ThemePalette.PURPLE -> if (settings.isDark) purpleDark else purpleLight
-        ThemePalette.WHITE -> if (settings.isDark) whiteDark else whiteLight
-        ThemePalette.BLACK -> if (settings.isDark) blackDark else blackLight
-        ThemePalette.GREY -> if (settings.isDark) greyDark else greyLight
+private fun relativeLuminance(argb: Long): Double {
+    fun channel(shift: Int): Double {
+        val value = ((argb shr shift) and 0xFF).toDouble() / 255.0
+        return if (value <= 0.04045) value / 12.92 else ((value + 0.055) / 1.055).pow(2.4)
     }
 
-/** Returns settings with light and dark mode toggled, preserving the selected palette. */
-fun toggleDarkMode(settings: ThemeSettings): ThemeSettings =
-    settings.copy(isDark = !settings.isDark)
+    return 0.2126 * channel(16) + 0.7152 * channel(8) + 0.0722 * channel(0)
+}
 
-/** Returns the themed character color for [mood]. */
-fun kitColorForMood(mood: KitMood, colors: PaletteColors): Color =
-    when (mood) {
-        KitMood.Happy -> colors.kitHappy
-        KitMood.Curious -> colors.kitCurious
-        KitMood.Tired -> colors.kitTired
-        KitMood.Proud -> colors.kitProud
-    }
-
-/** Applies the selected palette and color mode across the UI. */
+/** Applies the shared dark Material 3 color scheme and typography. */
 @Composable
-fun KitThemeTheme(settings: ThemeSettings, content: @Composable () -> Unit) {
-    val colors = themeColors(settings)
+fun KitThemeTheme(content: @Composable () -> Unit) {
     val baseTypography = Typography()
-    val colorScheme = if (settings.isDark) {
-        darkColorScheme(
-            primary = colors.primary,
-            onPrimary = colors.onPrimary,
-            secondary = colors.secondary,
-            background = colors.background,
-            surface = colors.surface,
-            onSurface = colors.text,
-            onSurfaceVariant = colors.mutedText,
-        )
-    } else {
-        lightColorScheme(
-            primary = colors.primary,
-            onPrimary = colors.onPrimary,
-            secondary = colors.secondary,
-            background = colors.background,
-            surface = colors.surface,
-            onSurface = colors.text,
-            onSurfaceVariant = colors.mutedText,
-        )
-    }
-
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = darkColorScheme(
+            primary = KitPalette.AccentHighlight,
+            onPrimary = KitPalette.Background,
+            primaryContainer = KitPalette.Accent,
+            onPrimaryContainer = KitPalette.OnAccent,
+            secondary = KitPalette.AccentHighlight,
+            onSecondary = KitPalette.OnAccent,
+            secondaryContainer = KitPalette.Surface,
+            onSecondaryContainer = KitPalette.Text,
+            tertiary = KitPalette.AccentHighlight,
+            onTertiary = KitPalette.OnAccent,
+            tertiaryContainer = KitPalette.AccentPressed,
+            onTertiaryContainer = KitPalette.OnAccentPressed,
+            background = KitPalette.Background,
+            surface = KitPalette.Surface,
+            onSurface = KitPalette.Text,
+            onSurfaceVariant = KitPalette.SecondaryText,
+            outline = KitPalette.Border,
+        ),
         typography = baseTypography.copy(
             headlineMedium = baseTypography.headlineMedium.copy(fontWeight = FontWeight.Bold),
             titleLarge = baseTypography.titleLarge.copy(fontWeight = FontWeight.SemiBold),

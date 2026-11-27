@@ -29,9 +29,19 @@ class RoomTextTest {
             assertFalse(RoomText.iconFor(room.id).isBlank())
             assertEquals(
                 "${room.title}. ${room.interactionPrompt}",
-                RoomText.accessibilityLabel(room),
+                RoomText.accessibilityLabel(room, isLocked = false),
             )
         }
+    }
+
+    @Test
+    fun lockedRoomAccessibilityLabelExplainsItsState() {
+        val room = RoomText.rooms.first()
+
+        assertEquals(
+            "${room.title}. ${RoomText.LOCKED_LABEL}. ${RoomText.LOCKED_HINT}",
+            RoomText.accessibilityLabel(room, isLocked = true),
+        )
     }
 
     @Test

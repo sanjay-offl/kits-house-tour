@@ -30,6 +30,10 @@ fun onRoomEntered(isFirstVisit: Boolean, state: MoodState, nowMillis: Long): Moo
         state
     }
 
+/** Makes Kit curious for five seconds when a locked room is tapped. */
+fun onLockedRoomTapped(nowMillis: Long): MoodState =
+    MoodState(Curious, expiresAtMillis = nowMillis + 5_000)
+
 /** Returns Kit to happy when a curious or proud mood has reached its expiry time. */
 fun onTimedMoodExpired(state: MoodState, nowMillis: Long): MoodState =
     if (

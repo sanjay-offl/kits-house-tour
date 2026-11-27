@@ -58,6 +58,40 @@ class HouseGameTest {
     }
 
     @Test
+    fun livingRoomStartsUnlocked() {
+        val progress = GameProgress(emptySet(), emptySet(), null, Badge.NONE)
+
+        assertTrue(isRoomUnlocked(progress, RoomId.LIVING_ROOM))
+    }
+
+    @Test
+    fun eachRoomRequiresAllPreviousRoomsToBeVisited() {
+        val progress = GameProgress(setOf(RoomId.LIVING_ROOM, RoomId.DRESSING), emptySet(), null, Badge.NONE)
+
+        assertTrue(isRoomUnlocked(progress, RoomId.STUDY))
+        assertFalse(isRoomUnlocked(progress, RoomId.DRESSING))
+        assertFalse(isRoomUnlocked(progress, RoomId.KITCHEN))
+        assertFalse(isRoomUnlocked(progress, RoomId.BEDROOM))
+    }
+
+    @Test
+    fun visitingRoomUnlocksTheNextRoomInTourOrder() {
+        val progress = visitRoom(GameProgress(emptySet(), emptySet(), null, Badge.NONE), RoomId.LIVING_ROOM)
+
+        assertTrue(isRoomUnlocked(progress, RoomId.STUDY))
+        assertFalse(isRoomUnlocked(progress, RoomId.DRESSING))
+    }
+
+    @Test
+    fun allRoomsBecomeUnlockedAfterTheTourIsVisited() {
+        val progress = GameProgress(RoomId.entries.toSet(), emptySet(), null, Badge.NONE)
+
+        RoomId.entries.forEach { roomId ->
+            assertTrue(isRoomUnlocked(progress, roomId))
+        }
+    }
+
+    @Test
     fun lessonCannotBeCompletedBeforeRoomIsVisited() {
         val progress = GameProgress(emptySet(), emptySet(), null, Badge.NONE)
 

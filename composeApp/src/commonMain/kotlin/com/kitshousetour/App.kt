@@ -18,47 +18,61 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.kitshousetour.content.KitText
-import com.kitshousetour.domain.Badge
 import com.kitshousetour.domain.Room
-import com.kitshousetour.engine.GameProgress
-import com.kitshousetour.engine.KitMood
-import com.kitshousetour.engine.MoodState
 import com.kitshousetour.engine.isFirstVisit
+import com.kitshousetour.engine.isRoomUnlocked
 import com.kitshousetour.engine.onRoomEntered
+import com.kitshousetour.engine.onLockedRoomTapped as moodOnLockedRoomTapped
 import com.kitshousetour.engine.onTapKit
 import com.kitshousetour.engine.onTimedMoodExpired
 import com.kitshousetour.engine.visitRoom
+import com.kitshousetour.data.JsonProgressRepository
+import com.kitshousetour.data.PlayerProgress
+import com.kitshousetour.domain.RoomId
 import com.kitshousetour.ui.HouseScreen
 import com.kitshousetour.ui.KitThemeTheme
 import com.kitshousetour.ui.RoomScreen
-import com.kitshousetour.ui.ThemeSettings
+import com.kitshousetour.platform.SpeechSynthesizer
 import kotlinx.coroutines.delay
-import kotlin.time.TimeSource
+import kotlin.time.Clock
 
 @Composable
+@OptIn(kotlin.time.ExperimentalTime::class)
 fun App() {
-    var progress by remember {
-        mutableStateOf(GameProgress(emptySet(), emptySet(), null, Badge.NONE))
-    }
-    var moodState by remember { mutableStateOf(MoodState(KitMood.Happy)) }
-    var themeSettings by remember { mutableStateOf(ThemeSettings()) }
+    val progressRepository = remember { JsonProgressRepository() }
+    var playerProgress by remember { mutableStateOf(progressRepository.loadOrCreate()) }
     var selectedRoom by remember { mutableStateOf<Room?>(null) }
+    var currentRoomId by remember {
+        mutableStateOf(
+            RoomId.entries.lastOrNull { roomId ->
+                roomId in playerProgress.game.visitedRooms &&
+                    isRoomUnlocked(playerProgress.game, roomId)
+            } ?: RoomId.LIVING_ROOM,
+        )
+    }
     var speechText by remember { mutableStateOf<String?>(null) }
     var speechTrigger by remember { mutableIntStateOf(0) }
     var tapTrigger by remember { mutableIntStateOf(0) }
-    val sessionClock = remember { TimeSource.Monotonic.markNow() }
+
+    fun updateProgress(updated: PlayerProgress) {
+        progressRepository.save(updated)
+        playerProgress = updated
+    }
 
     LaunchedEffect(Unit) {
         while (true) {
             delay(500)
-            moodState = onTimedMoodExpired(
-                moodState,
-                sessionClock.elapsedNow().inWholeMilliseconds,
+            val updatedMood = onTimedMoodExpired(
+                playerProgress.mood,
+                Clock.System.now().toEpochMilliseconds(),
             )
+            if (updatedMood != playerProgress.mood) {
+                updateProgress(playerProgress.copy(mood = updatedMood))
+            }
         }
     }
 
-    KitThemeTheme(settings = themeSettings) {
+    KitThemeTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background,
@@ -73,31 +87,47 @@ fun App() {
             ) { room ->
                 if (room == null) {
                     HouseScreen(
-                        progress = progress,
-                        mood = moodState.mood,
-                        themeSettings = themeSettings,
+                        progress = playerProgress.game,
+                        mood = playerProgress.mood.mood,
                         speechText = speechText,
                         speechTrigger = speechTrigger,
                         tapTrigger = tapTrigger,
+                        currentRoomId = currentRoomId,
                         onRoomSelected = { selected ->
-                            val firstVisit = isFirstVisit(progress, selected.id)
-                            progress = visitRoom(progress, selected.id)
-                            moodState = onRoomEntered(
+                            val firstVisit = isFirstVisit(playerProgress.game, selected.id)
+                            val updatedMood = onRoomEntered(
                                 firstVisit,
-                                moodState,
-                                sessionClock.elapsedNow().inWholeMilliseconds,
+                                playerProgress.mood,
+                                Clock.System.now().toEpochMilliseconds(),
                             )
-                            speechText = KitText.lineForMood(moodState.mood)
+                            updateProgress(
+                                playerProgress.copy(
+                                    game = visitRoom(playerProgress.game, selected.id),
+                                    mood = updatedMood,
+                                ),
+                            )
+                            speechText = KitText.lineForMood(updatedMood.mood)
                             speechTrigger += 1
+                            currentRoomId = selected.id
                             selectedRoom = selected
                         },
-                        onKitTapped = {
-                            moodState = onTapKit(moodState)
-                            tapTrigger += 1
-                            speechText = KitText.lineForMood(moodState.mood)
+                        onLockedRoomTapped = {
+                            val updatedMood = moodOnLockedRoomTapped(
+                                Clock.System.now().toEpochMilliseconds(),
+                            )
+                            updateProgress(playerProgress.copy(mood = updatedMood))
+                            speechText = KitText.lineForMood(updatedMood.mood)
                             speechTrigger += 1
+                            speechText?.let(SpeechSynthesizer::speak)
                         },
-                        onThemeSettingsChanged = { themeSettings = it },
+                        onKitTapped = {
+                            val updatedMood = onTapKit(playerProgress.mood)
+                            updateProgress(playerProgress.copy(mood = updatedMood))
+                            tapTrigger += 1
+                            speechText = KitText.lineForMood(updatedMood.mood)
+                            speechTrigger += 1
+                            speechText?.let(SpeechSynthesizer::speak)
+                        },
                     )
                 } else {
                     RoomScreen(

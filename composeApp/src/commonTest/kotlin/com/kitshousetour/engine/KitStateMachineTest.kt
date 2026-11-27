@@ -91,4 +91,12 @@ class KitStateMachineTest {
 
         assertEquals(state, onRoomEntered(isFirstVisit = false, state, nowMillis = 2_000))
     }
+
+    @Test
+    fun tappingLockedRoomMakesKitCuriousForFiveSeconds() {
+        assertEquals(
+            MoodState(Curious, expiresAtMillis = 7_000),
+            onLockedRoomTapped(nowMillis = 2_000),
+        )
+    }
 }
